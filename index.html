@@ -6,8 +6,8 @@
     <title>Image Editor Workbench</title>
 
     <!-- PyScript Core -->
-    <link rel="stylesheet" href="https://pyscript.net/releases/2025.8.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2025.8.1/core.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
         :root {
@@ -34,33 +34,34 @@
             justify-content: center; align-items: center; z-index: 1000; transition: opacity 0.5s;
         }
         .loader.hidden { opacity: 0; pointer-events: none; }
+        .loader p { font-size: 1.5em; margin-bottom: 20px; }
+        #fullscreen-btn {
+            padding: 15px 30px; font-size: 1.2em; cursor: pointer;
+            background-color: var(--accent-color); color: white; border: none; border-radius: 8px;
+            display: none; /* Hidden until Python is ready */
+        }
+
         .main-container { display: flex; flex-direction: row; height: 100%; }
 
         #controls-panel {
             background-color: var(--panel-bg);
             padding: 20px;
-            width: 350px;
-            min-width: 300px;
+            width: 280px; /* NEW: Default width is 20% smaller */
+            min-width: 180px; /* Adjusted min-width */
             max-width: 600px;
             height: 100%;
-            box-sizing: border-box; /* Important for padding */
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
         }
         #controls-wrapper { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
-        
-        /* NEW: Styles for the button container */
         .apply-button-container {
-            flex-shrink: 0; /* Prevents this container from shrinking */
-            padding-top: 15px;
-            margin-top: 15px;
+            flex-shrink: 0; padding-top: 15px; margin-top: 15px;
             border-top: 1px solid var(--border-color);
         }
 
-        #resizer {
-            width: 8px; background-color: #111; cursor: col-resize; flex-shrink: 0;
-        }
+        #resizer { width: 8px; background-color: #111; cursor: col-resize; flex-shrink: 0; }
         #resizer:hover { background-color: var(--accent-color); }
 
         #gallery {
@@ -84,7 +85,7 @@
         .control label { display: block; margin-bottom: 5px; font-size: 0.9em; }
         .control input[type="range"] { width: 100%; }
         .control .value-display { display: inline-block; margin-left: 10px; font-weight: bold; }
-        #curve-container { background-color: #111; border-radius: 4px; border: 1px solid var(--border-color); }
+        #curve-container { background-color: #111; border-radius: 4px; border: 1px solid var(--border-color); touch-action: none; /* NEW: Helps prevent scrolling on curve editor */ }
         .apply-btn {
             background-color: var(--accent-color); color: white; border: none;
             padding: 15px; border-radius: 8px; font-size: 1.2em; font-weight: bold;
@@ -96,13 +97,16 @@
 </head>
 
 <body>
-    <div id="loader" class="loader"><p>🚀 Initializing Python Environment...</p></div>
+    <div id="loader" class="loader">
+        <p id="loader-text">🚀 Initializing Python Environment...</p>
+        <button id="fullscreen-btn">Enter Fullscreen</button>
+    </div>
 
     <div class="main-container">
         <div id="controls-panel">
             <div id="controls-wrapper">
                 <h2>Controls</h2>
-                <!-- All control groups go here -->
+                <!-- All control groups -->
                 <div class="control-group"><h3>1. Technical Corrections</h3>
                     <div class="control"><label for="TEMPERATURE">Temperature <span class="value-display" id="TEMPERATURE_val">0</span></label><input type="range" id="TEMPERATURE" min="-100" max="100" value="0" step="1"></div>
                     <div class="control"><label for="TINT">Tint <span class="value-display" id="TINT_val">0</span></label><input type="range" id="TINT" min="-100" max="100" value="0" step="1"></div>
@@ -126,7 +130,6 @@
                     <div class="control"><label for="VIGNETTE_STRENGTH">Vignette <span class="value-display" id="VIGNETTE_STRENGTH_val">0.5</span></label><input type="range" id="VIGNETTE_STRENGTH" min="0" max="1" value="0.5" step="0.01"></div>
                 </div>
             </div>
-            <!-- NEW: Button is now in its own container for layout control -->
             <div class="apply-button-container">
                 <button id="apply-button" class="apply-btn">Apply Changes</button>
             </div>
@@ -267,10 +270,14 @@
                     apply_btn.textContent = "Apply Changes"; apply_btn.disabled = False
 
         async def main():
-            image_urls = [ "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img1.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img2.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img3.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img4.png" ]
+            image_urls = [ "https://picsum.photos/id/1015/800/600", "https://picsum.photos/id/10/800/600", "https://picsum.photos/id/1025/800/600", "https://picsum.photos/id/20/800/600" ]
             editor = Editor(image_urls)
             await editor.load_images()
-            document.getElementById("loader").classList.add("hidden")
+
+            # Python is ready, hide the loading text and show the fullscreen button
+            document.getElementById("loader-text").style.display = "none"
+            document.getElementById("fullscreen-btn").style.display = "block"
+            
             proxy_update_func = create_proxy(editor.process_and_update)
             document.getElementById("apply-button").addEventListener("click", proxy_update_func)
             editor.process_and_update()
@@ -280,6 +287,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Fullscreen button logic
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const loader = document.getElementById('loader');
+            fullscreenBtn.addEventListener('click', () => {
+                document.documentElement.requestFullscreen();
+                loader.classList.add('hidden');
+            });
+
             document.querySelectorAll('input[type="range"]').forEach(slider => {
                 const display = document.getElementById(slider.id + '_val');
                 if (display) slider.addEventListener('input', () => display.textContent = slider.value);
@@ -288,9 +303,7 @@
             const resizer = document.getElementById('resizer');
             const leftPanel = document.getElementById('controls-panel');
             let isResizing = false;
-            resizer.addEventListener('mousedown', (e) => {
-                isResizing = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
-            });
+            resizer.addEventListener('mousedown', () => isResizing = true);
             document.addEventListener('mousemove', (e) => {
                 if (!isResizing) return;
                 const newWidth = e.clientX;
@@ -298,12 +311,10 @@
                 const maxWidth = parseInt(getComputedStyle(leftPanel).maxWidth);
                 if (newWidth > minWidth && newWidth < maxWidth) { leftPanel.style.width = `${newWidth}px`; }
             });
-            document.addEventListener('mouseup', () => {
-                isResizing = false; document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto';
-            });
+            document.addEventListener('mouseup', () => isResizing = false);
 
             const svg = document.getElementById('tone-curve-svg');
-            let width = svg.clientWidth || 310; let height = svg.clientHeight || 150;
+            let width = svg.clientWidth || 240; let height = svg.clientHeight || 150;
             svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#007bff'); line.setAttribute('stroke-width', '2');
@@ -317,20 +328,31 @@
                 circle.setAttribute('cx', point.x); circle.setAttribute('cy', point.y); circle.setAttribute('r', '8');
                 circle.setAttribute('fill', 'white'); circle.setAttribute('cursor', 'grab');
                 svg.appendChild(circle);
+
                 let isDragging = false;
-                circle.addEventListener('mousedown', () => { isDragging = true; circle.setAttribute('cursor', 'grabbing'); });
-                const stopDrag = () => { isDragging = false; circle.setAttribute('cursor', 'grab'); };
-                svg.addEventListener('mouseup', stopDrag); svg.addEventListener('mouseleave', stopDrag);
-                svg.addEventListener('mousemove', (e) => {
+                const startDrag = (e) => { isDragging = true; circle.setAttribute('cursor', 'grabbing'); e.preventDefault(); };
+                const endDrag = () => { isDragging = false; circle.setAttribute('cursor', 'grab'); };
+                const drag = (e) => {
                     if (isDragging) {
                         const rect = svg.getBoundingClientRect();
-                        let newX = Math.max(0, Math.min(width, e.clientX - rect.left));
-                        let newY = Math.max(0, Math.min(height, e.clientY - rect.top));
+                        const x = e.clientX || e.touches[0].clientX;
+                        const y = e.clientY || e.touches[0].clientY;
+                        let newX = Math.max(0, Math.min(width, x - rect.left));
+                        let newY = Math.max(0, Math.min(height, y - rect.top));
                         controlPoints[index].x = newX; controlPoints[index].y = newY;
                         circle.setAttribute('cx', newX); circle.setAttribute('cy', newY);
                         updateCurve();
                     }
-                });
+                };
+
+                circle.addEventListener('mousedown', startDrag);
+                svg.addEventListener('mousemove', drag);
+                svg.addEventListener('mouseup', endDrag);
+                svg.addEventListener('mouseleave', endDrag);
+
+                circle.addEventListener('touchstart', startDrag, { passive: false });
+                svg.addEventListener('touchmove', drag, { passive: false });
+                svg.addEventListener('touchend', endDrag);
             };
             const getCurvePath = (points, tension = 0.5) => {
                 let d = `M ${points[0].x} ${points[0].y}`;
