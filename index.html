@@ -6,8 +6,8 @@
     <title>Image Editor Workbench</title>
 
     <!-- PyScript Core -->
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.8.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2025.8.1/core.js"></script>
 
     <style>
         :root {
@@ -44,15 +44,9 @@
         .main-container { display: flex; flex-direction: row; height: 100%; }
 
         #controls-panel {
-            background-color: var(--panel-bg);
-            padding: 20px;
-            width: 280px; /* NEW: Default width is 20% smaller */
-            min-width: 180px; /* Adjusted min-width */
-            max-width: 600px;
-            height: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--panel-bg); padding: 20px; width: 280px;
+            min-width: 250px; max-width: 600px; height: 100%;
+            box-sizing: border-box; display: flex; flex-direction: column;
             flex-shrink: 0;
         }
         #controls-wrapper { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
@@ -85,7 +79,7 @@
         .control label { display: block; margin-bottom: 5px; font-size: 0.9em; }
         .control input[type="range"] { width: 100%; }
         .control .value-display { display: inline-block; margin-left: 10px; font-weight: bold; }
-        #curve-container { background-color: #111; border-radius: 4px; border: 1px solid var(--border-color); touch-action: none; /* NEW: Helps prevent scrolling on curve editor */ }
+        #curve-container { background-color: #111; border-radius: 4px; border: 1px solid var(--border-color); touch-action: none; }
         .apply-btn {
             background-color: var(--accent-color); color: white; border: none;
             padding: 15px; border-radius: 8px; font-size: 1.2em; font-weight: bold;
@@ -270,11 +264,11 @@
                     apply_btn.textContent = "Apply Changes"; apply_btn.disabled = False
 
         async def main():
-            image_urls = [ "https://picsum.photos/id/1015/800/600", "https://picsum.photos/id/10/800/600", "https://picsum.photos/id/1025/800/600", "https://picsum.photos/id/20/800/600" ]
+            image_urls = [ "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img1.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img2.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img3.png", "https://raw.githubusercontent.com/TitanStar73/TitanStar73.github.io/main/imgs/img4.png" ]
             editor = Editor(image_urls)
+            document.getElementById("loader-text").textContent = "Loading Images..."
             await editor.load_images()
 
-            # Python is ready, hide the loading text and show the fullscreen button
             document.getElementById("loader-text").style.display = "none"
             document.getElementById("fullscreen-btn").style.display = "block"
             
@@ -287,13 +281,24 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Fullscreen button logic
+            // --- NEW: Robust Fullscreen Logic ---
             const fullscreenBtn = document.getElementById('fullscreen-btn');
             const loader = document.getElementById('loader');
-            fullscreenBtn.addEventListener('click', () => {
-                document.documentElement.requestFullscreen();
-                loader.classList.add('hidden');
-            });
+            function openFullscreen() {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+                else if (elem.webkitRequestFullscreen) { /* Safari */ elem.webkitRequestFullscreen(); } 
+                else if (elem.msRequestFullscreen) { /* IE11 */ elem.msRequestFullscreen(); }
+            }
+            fullscreenBtn.addEventListener('click', openFullscreen);
+            function handleFullscreenChange() {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    loader.classList.add('hidden');
+                }
+            }
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
 
             document.querySelectorAll('input[type="range"]').forEach(slider => {
                 const display = document.getElementById(slider.id + '_val');
@@ -334,6 +339,7 @@
                 const endDrag = () => { isDragging = false; circle.setAttribute('cursor', 'grab'); };
                 const drag = (e) => {
                     if (isDragging) {
+                        e.preventDefault();
                         const rect = svg.getBoundingClientRect();
                         const x = e.clientX || e.touches[0].clientX;
                         const y = e.clientY || e.touches[0].clientY;
