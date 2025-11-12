@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Flip</title>
+    <style>
+        body {
+            display: grid;
+            place-items: center;
+            height: 100vh;
+            background-color: #333;
+            font: 'Royal.ttf';
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            perspective: 1600px;
+            text-align: center;
+        }
+
+        .coin-wrapper {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+        }
+        
+        #coin {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+        
+
+        #coin.animate {
+            animation: spin-animation 3s forwards;
+            animation-timing-function: cubic-bezier(0.2, 0.8, 0.5, 1);
+        }
+        
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background-size: cover;
+            border-radius: 50%;
+        }
+
+        .heads {
+            background-image: url('heads.png');
+        }
+
+        .tails {
+            background-image: url('tails.png');
+            transform: rotateY(180deg);
+        }
+
+
+        #result {
+            margin-top: 0px;
+            font-size: 2.5rem;
+            color: #eee;
+            font-weight: 300;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="coin-wrapper">
+            <div id="coin">
+                <div class="face heads"></div>
+                <div class="face tails"></div>
+            </div>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // --- Tweak the probability here ---
+        const probabilityHeads = 0.5;
+
+        const coin = document.getElementById('coin');
+        const flipButton = document.getElementById('coin');
+        const resultDiv = document.getElementById('result');
+        const animationDuration = 3000; // ms, you also will need to change css
+
+        let dynamicStyleSheet = null;
+        let flipButtonDisabled = false;
+
+        flipButton.addEventListener('click', () => {
+            if (flipButtonDisabled){
+                return;
+            }
+            flipButtonDisabled = true
+            resultDiv.textContent = '';
+            
+            coin.classList.remove('animate');
+            
+            const isHeads = Math.random() < probabilityHeads;
+
+            const flipType = Math.random() < 0.3 //Higher one to X looks better usually
+            const flipsA = (Math.random() < 0.33) ? 1 : 0 ;
+            const flipsB = ((Math.random() < 0.33) || (flipsA < 1)) ? (1 + (Math.random() * 2)):1;
+            
+            
+            const randomYSpins = 4 + Math.floor(Math.random() * 2); 
+            const randomXSpins = Math.floor(flipType?flipsA:flipsB); 
+            const randomZSpins = Math.floor(flipType?flipsB:flipsA); 
+
+            console.log(randomXSpins);
+            console.log(randomYSpins);
+            console.log(randomZSpins);
+            
+            
+            // The final rotation deg
+            const finalYRotation = (randomYSpins * 360) + (isHeads ? 0 : 180) + Math.random() * 8;
+            const finalXRotation = (randomXSpins * 360) + Math.random() * 8; //some random wobble at the end
+            const finalZRotation = (randomZSpins * 360) + Math.random() * 20;
+            
+
+            const keyframes = `
+                @keyframes spin-animation {
+                    0% {
+                        transform: rotateX(0) rotateY(0) rotateZ(0);
+                    }
+                    100% {
+                        transform: rotateX(${finalXRotation}deg) rotateY(${finalYRotation}deg) rotateZ(${finalZRotation}deg);
+                    }
+                }
+            `;
+
+            if (!dynamicStyleSheet) {
+                dynamicStyleSheet = document.createElement('style');
+                document.head.appendChild(dynamicStyleSheet);
+            }
+            dynamicStyleSheet.innerHTML = keyframes;
+            
+            setTimeout(() => coin.classList.add('animate'), 10);
+            
+            setTimeout(() => {
+                resultDiv.textContent = `${isHeads ? 'Heads' : 'Tails'}`;
+                flipButtonDisabled = false;
+            }, animationDuration);
+        });
+    </script>
+</body>
+</html>
