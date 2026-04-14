@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!--Version 1.1.1 -->
+<!--Version 1.1.2 -->
+<script>
+    const versionID = '1.1.2'
+</script>
 
 <html lang="en">
 <head>
@@ -250,7 +253,7 @@
         <div class="flex items-center mb-8">
             <button onclick="nav('pageA')" class="text-2xl mr-4 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"><i class="fas fa-arrow-left"></i></button>
             <h1 class="text-3xl font-extrabold tracking-tight text-gray-800 dark:text-white">
-                Settings <span class="text-sm font-medium text-gray-400 ml-2">v 1.1.1</span>
+                Settings <span id = "versionID" class="text-sm font-medium text-gray-400 ml-2"></span>
             </h1>
 
         </div>
@@ -369,8 +372,8 @@
             <button onclick="adjustNutAmount(500, true)" class="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-sm btn-chunky border-blue-100 shadow-[0_4px_0_#dbeafe] dark:shadow-[0_4px_0_#1e3a8a]">+500</button>
         </div>
         <div id="proteinQuickAdd" class="flex justify-center gap-3 mb-8 hidden">
-            <button onclick="adjustNutAmount(10, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+10g</button>
-            <button onclick="adjustNutAmount(25, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+25g</button>
+            <button onclick="adjustNutAmount(5, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+5g</button>
+            <button onclick="adjustNutAmount(20, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+20g</button>
             <button onclick="adjustNutAmount(50, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+50g</button>
         </div>
         <button onclick="saveNutModal()" id="nutSaveBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-4 rounded-[1.2rem] btn-chunky border-blue-700 shadow-[0_4px_0_#2563eb] flex items-center justify-center mb-2">Confirm</button>
@@ -808,7 +811,7 @@
 
     function adjustNutAmount(delta, isQuickAdd = false) {
         const input = document.getElementById('nutModalInput'); let val = parseInt(input.value) || 0;
-        if(!isQuickAdd) { if(activeModalType === 'water') delta = delta * 50; if(activeModalType === 'protein') delta = delta * 5; }
+        if(!isQuickAdd) { if(activeModalType === 'water') delta = delta * 50; if(activeModalType === 'protein') delta = delta * 1; }
         val = Math.max(0, val + delta); input.value = val; updateNutDelta();
     }
 
@@ -1131,6 +1134,7 @@
     }
 
     init();
+    document.getElementById('versionID').innerText = 'v ' + versionID;
     
 </script>
 </body>
