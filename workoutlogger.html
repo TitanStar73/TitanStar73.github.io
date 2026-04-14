@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<!--Version 1.0.0 -->
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleek Workout Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/fireworks-js@2.10.7/dist/index.umd.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#58cc02', 
+                        primaryDark: '#46a302',
+                        bgLight: '#ffffff',
+                        bgDark: '#111827',
+                        cardLight: '#f3f4f6',
+                        cardDark: '#1f2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        #app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow-x: hidden; }
+        .dark #app-container { box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .ring-path { transition: stroke-dashoffset 0.5s ease; }
+        
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn-chunky { transition: all 0.1s; border-width: 2px; }
+        .btn-chunky:active { border-bottom-width: 2px; transform: translateY(4px); box-shadow: none !important; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        #exSearchModal { height: 85vh; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translate(-100px, -10px); }
+            to { opacity: 1; transform: translate(0, 0); }
+        }
+        .reveal { opacity: 0; }
+        .active .reveal { animation: slideIn 0.5s ease forwards; }
+
+        /*Scroll Bar*/
+        html {
+            scrollbar-gutter: stable;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #374151; /* gray-700 */
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; /* gray-600 */
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+
+        .dark html {
+            scrollbar-color: #374151 transparent;
+        }
+
+        body {
+            overflow-x: hidden;
+        }
+
+
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+
+<div id="app-container" class="bg-bgLight dark:bg-bgDark pb-20">
+
+    <!-- PAGE A: HOME FEED -->
+    <div id="pageA" class="page active p-6 pt-8">
+        <div class="relative mb-14">
+            <div class="flex justify-between items-start mb-2 px-1">
+                <button onclick="nav('pageSettings')" class="text-gray-400 text-[28px] hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-cog"></i>
+                </button>
+                
+                
+                <!--Streak-->               
+                <div class="relative flex flex-col items-end">
+                    <!-- Fire Icon Row -->
+                    <div id="streak-indicator" onclick="openStreakModal()" class="text-orange-500 font-extrabold text-3xl flex items-center cursor-pointer">
+                        <span id="streak-num" class="mr-1.5">1711</span> <i class="fas fa-fire"></i>
+                    </div>
+
+                    <div onclick="openStreakModal()" class="absolute top-full right-0 flex flex-col items-end whitespace-nowrap cursor-pointer">
+                        <div class="flex gap-1 mt-0.5">
+                            <i id="saver-1" class="fas fa-cube text-[10px] text-gray-300 dark:text-gray-700"></i>
+                            <i id="saver-2" class="fas fa-cube text-[10px] text-gray-300 dark:text-gray-700"></i>
+                            <i id="saver-3" class="fas fa-cube text-[10px] text-gray-300 dark:text-gray-700"></i>
+                        </div>
+                        <div id="saver-clock-row" class="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center gap-1">
+                            <i class="fas fa-clock"></i> <span id="saver-countdown">+1 in 7d</span>
+                        </div>
+                    </div>
+                </div>
+
+                
+                
+            </div>
+
+            <div class="flex justify-center items-center gap-5 mt-4">
+                <button onclick="openNutModal('water')" class="w-16 h-16 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-[1.2rem] flex flex-col items-center justify-center text-blue-500 btn-chunky shadow-[0_4px_0_#e5e7eb] dark:shadow-[0_4px_0_#020617] relative" title="Add Water">
+                    <i class="fas fa-plus text-[12px] mb-0.5"></i>
+                    <i class="fas fa-tint text-2xl"></i>
+                </button>
+
+                <div class="relative flex flex-col items-center">
+                    <span class="absolute -top-8 text-[11px] text-gray-400 font-bold tracking-wider uppercase whitespace-nowrap">Add Workout</span>
+                    <button onclick="openExSearchModal()" class="w-32 h-32 bg-primary hover:bg-primaryDark text-white rounded-[2.5rem] btn-chunky border-primaryDark shadow-[0_6px_0_#46a302] flex items-center justify-center">
+                        <i class="fas fa-plus text-6xl"></i>
+                    </button>
+                </div>
+
+                <button onclick="openNutModal('protein')" class="w-16 h-16 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-[1.2rem] flex flex-col items-center justify-center text-red-500 btn-chunky shadow-[0_4px_0_#e5e7eb] dark:shadow-[0_4px_0_#020617] relative" title="Add Protein">
+                    <i class="fas fa-plus text-[12px] mb-0.5"></i>
+                    <i class="fas fa-pizza-slice text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="historyFeed" class="space-y-10"></div>
+    </div>
+
+    <!-- PAGE C: CREATE/EDIT EXERCISE -->
+    <div id="pageC" class="page p-6 pt-8">
+        <div class="flex items-center mb-8">
+            <button onclick="nav('pageA')" class="text-2xl mr-4 text-gray-500"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="text-3xl font-extrabold tracking-tight">New Exercise</h1>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Exercise Name</label>
+                <input type="text" id="newExName" placeholder="e.g. Bench Press" class="w-full bg-cardLight dark:bg-cardDark border-2 border-transparent focus:border-primary p-4 rounded-2xl font-bold text-lg outline-none transition-all">
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Freq. Unit</label>
+                    <input type="text" id="newExFreqUnit" placeholder="Reps" class="w-full bg-cardLight dark:bg-cardDark p-3 rounded-xl font-bold outline-none">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Int. Unit</label>
+                    <input type="text" id="newExIntUnit" placeholder="kg" class="w-full bg-cardLight dark:bg-cardDark p-3 rounded-xl font-bold outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Notes / Tip (Instructional)</label>
+                <textarea id="newExNote" rows="3" placeholder="Keep elbows tucked..." class="w-full bg-cardLight dark:bg-cardDark p-4 rounded-2xl font-medium outline-none"></textarea>
+            </div>
+
+            <button onclick="saveNewExercise()" class="w-full bg-primary text-white font-bold py-4 rounded-2xl btn-chunky border-primaryDark shadow-[0_4px_0_#46a302]">
+                Create Exercise
+            </button>
+        </div>
+    </div>
+
+    <!-- PAGE D: LOG WORKOUT SESSION -->
+    <div id="pageD" class="page p-6 pt-8">
+        <div class="flex items-center justify-between mb-6">
+            <button onclick="nav('pageA')" class="text-2xl text-gray-500"><i class="fas fa-arrow-left"></i></button>
+            <h1 id="logExTitle" class="text-2xl font-extrabold text-center flex-1 mx-2">Exercise</h1>
+            <div class="w-8"></div>
+        </div>
+
+        <!-- Displays global instruction note -->
+        <div id="logExGlobalNote" class="mb-6 p-4 bg-primary/10 border-l-4 border-primary rounded-r-2xl hidden">
+            <span class="block text-[10px] font-black text-primaryDark uppercase tracking-widest mb-1">Note: </span>
+            <p id="logExGlobalNoteText" class="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug italic"></p>
+        </div>
+
+        <div id="progressGraphContainer" class="bg-cardLight dark:bg-cardDark rounded-3xl p-4 mb-6 h-40 relative overflow-hidden flex flex-col">
+            <div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Historical Intensity</div>
+            <div id="graphSvgWrapper" class="flex-1 w-full pl-8 pr-2"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="bg-cardLight dark:bg-cardDark p-4 rounded-3xl border-2 border-transparent focus-within:border-primary transition-all">
+                <span id="logExFreqUnit" class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Reps</span>
+                <input type="number" id="logFreq" class="bg-transparent text-3xl font-extrabold w-full outline-none" value="10">
+            </div>
+            <div class="bg-cardLight dark:bg-cardDark p-4 rounded-3xl border-2 border-transparent focus-within:border-primary transition-all">
+                <span id="logExIntUnit" class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Intensity</span>
+                <input type="number" id="logInt" oninput="updateIntensityStatus()" class="bg-transparent text-3xl font-extrabold w-full outline-none" value="20">
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-3 mb-8 px-2">
+            <div id="intensityStatus" class="text-sm font-bold flex items-center gap-2">
+                <div id="statusDot" class="w-3 h-3 rounded-full"></div>
+                <span id="statusText">No previous data</span>
+            </div>
+            <div class="flex gap-4">
+                <div class="flex-1 text-xs font-bold text-gray-400">Target +5%: <span id="target5" class="text-gray-700 dark:text-gray-200">--</span></div>
+                <div class="flex-1 text-xs font-bold text-gray-400">Target +10%: <span id="target10" class="text-gray-700 dark:text-gray-200">--</span></div>
+            </div>
+        </div>
+
+        <textarea id="logNote" placeholder="Notes for this specific set..." class="w-full bg-cardLight dark:bg-cardDark p-4 rounded-2xl font-medium outline-none mb-6"></textarea>
+
+        <button onclick="saveWorkoutLog()" class="w-full bg-primary text-white font-bold py-5 rounded-[2rem] btn-chunky border-primaryDark shadow-[0_6px_0_#46a302] text-xl">
+            Log Set
+        </button>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="pageSettings" class="page p-6 pt-8">
+        <div class="flex items-center mb-8">
+            <button onclick="nav('pageA')" class="text-2xl mr-4 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="text-3xl font-extrabold tracking-tight text-gray-800 dark:text-white">Settings</h1>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Daily Goals</h3>
+            <div class="bg-cardLight dark:bg-cardDark rounded-2xl p-4 flex flex-col gap-4 border border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-500 flex items-center justify-center"><i class="fas fa-tint"></i></div>
+                        <span class="font-bold text-gray-700 dark:text-gray-200">Water Goal<span class="text-xs text-gray-400 ml-0.5 font-medium tracking-tighter italic"> (2000-3000ml)</span></span>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="number" id="setWaterGoal" onchange="updateGoals()" class="w-20 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl py-1 px-2 text-center font-bold text-lg outline-none focus:border-blue-500">
+                        <span class="ml-2 text-sm font-bold text-gray-400">ml</span>
+                    </div>
+                </div>
+                <hr class="border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 text-red-500 flex items-center justify-center"><i class="fas fa-pizza-slice"></i></div>
+                        <span class="font-bold text-gray-700 dark:text-gray-200">Protein Goal<span class="text-xs text-gray-400 ml-0.5 font-medium tracking-tighter italic"> (1.6-2.2g/kg bodyweight)</span></span>
+                        
+                    </div>
+                    <div class="flex items-center">
+                        <input type="number" id="setProteinGoal" onchange="updateGoals()" class="w-20 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl py-1 px-2 text-center font-bold text-lg outline-none focus:border-red-500">
+                        <span class="ml-2 text-sm font-bold text-gray-400">g</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Appearance</h3>
+            <div class="bg-cardLight dark:bg-cardDark rounded-2xl p-2 flex border border-gray-200 dark:border-gray-700">
+                <button onclick="setTheme('light')" id="btn-theme-light" class="flex-1 py-2 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300">Light</button>
+                <button onclick="setTheme('dark')" id="btn-theme-dark" class="flex-1 py-2 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300">Dark</button>
+                <button onclick="setTheme('auto')" id="btn-theme-auto" class="flex-1 py-2 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300">Auto</button>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Data Management (CSV)</h3>
+            <div class="space-y-4">
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-500 flex items-center justify-center"><i class="fas fa-apple-alt"></i></div>
+                        <h4 class="font-bold text-gray-800 dark:text-gray-200">Nutrition Logs</h4>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportCSV('nutrition')" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-xl text-sm transition-colors">Export</button>
+                        <button onclick="document.getElementById('importNut').click()" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-xl text-sm transition-colors">Load</button>
+                        <input type="file" id="importNut" accept=".csv" class="hidden" onchange="importCSV(event, 'nutrition')">
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-primary/20 text-primaryDark flex items-center justify-center"><i class="fas fa-dumbbell"></i></div>
+                        <h4 class="font-bold text-gray-800 dark:text-gray-200">Workout Logs</h4>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportCSV('workouts')" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold py-2 rounded-xl text-sm transition-colors">Export</button>
+                        <button onclick="document.getElementById('importWork').click()" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold py-2 rounded-xl text-sm transition-colors">Load</button>
+                        <input type="file" id="importWork" accept=".csv" class="hidden" onchange="importCSV(event, 'workouts')">
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-500 flex items-center justify-center"><i class="fas fa-clipboard-list"></i></div>
+                        <h4 class="font-bold text-gray-800 dark:text-gray-200">Exercises Dict</h4>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportCSV('exercises')" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold py-2 rounded-xl text-sm transition-colors">Export</button>
+                        <button onclick="document.getElementById('importEx').click()" class="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold py-2 rounded-xl text-sm transition-colors">Load</button>
+                        <input type="file" id="importEx" accept=".csv" class="hidden" onchange="importCSV(event, 'exercises')">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- UI MODAL -->
+<div id="uiModalContainer" class="fixed inset-0 z-[60] flex flex-col justify-end items-center pointer-events-none transition-all duration-300">
+    <div id="uiModalBackdrop" onclick="closeUIModal()" class="absolute inset-0 bg-gray-900/50 opacity-0 transition-opacity duration-300"></div>
+    <div id="uiModal" class="relative w-full max-w-[480px] bg-white dark:bg-gray-800 rounded-t-[2rem] p-8 pt-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pointer-events-auto translate-y-full transition-transform duration-300">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6"></div>
+        <div id="uiModalContent"></div>
+    </div>
+</div>
+
+<!-- NUTRITION MODAL -->
+<div id="nutModalContainer" class="fixed inset-0 z-50 flex flex-col justify-end items-center pointer-events-none transition-all duration-300">
+    <div id="nutModalBackdrop" onclick="closeNutModal()" class="absolute inset-0 bg-gray-900/50 opacity-0 transition-opacity duration-300"></div>
+    <div id="nutModal" class="relative w-full max-w-[480px] bg-white dark:bg-gray-800 rounded-t-[2rem] p-6 pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pointer-events-auto translate-y-full transition-transform duration-300 cubic-bezier(0.175, 0.885, 0.32, 1)">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-5"></div>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-extrabold flex items-baseline gap-2 text-gray-800 dark:text-white">
+                <i id="nutModalIcon" class="fas fa-tint text-blue-500 self-center"></i> 
+                <span id="nutModalText">Log Water</span>
+                <span id="nutModalDelta" class="text-[1.1rem] font-bold ml-1 transition-opacity duration-200 opacity-0"></span>
+            </h2>
+        </div>
+        <div class="flex items-center justify-center gap-6 mb-6">
+            <button onclick="adjustNutAmount(-1)" class="w-14 h-14 rounded-[1.2rem] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-2xl font-bold btn-chunky border-gray-200 dark:border-gray-700 shadow-[0_4px_0_#e5e7eb] dark:shadow-[0_4px_0_#020617] flex items-center justify-center"><i class="fas fa-minus"></i></button>
+            <div class="text-center w-32">
+                <input type="number" id="nutModalInput" class="text-5xl font-extrabold w-full text-center bg-transparent outline-none text-gray-800 dark:text-white" value="0" onchange="validateNutInput()" oninput="updateNutDelta()">
+                <div id="nutModalUnit" class="text-gray-400 font-bold uppercase tracking-widest text-[11px] mt-1">ml</div>
+            </div>
+            <button onclick="adjustNutAmount(1)" id="nutBtnPlus" class="w-14 h-14 rounded-[1.2rem] bg-blue-100 text-blue-500 text-2xl font-bold btn-chunky border-blue-200 shadow-[0_4px_0_#bfdbfe] flex items-center justify-center"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="waterQuickAdd" class="flex justify-center gap-3 mb-8 hidden">
+            <button onclick="adjustNutAmount(100, true)" class="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-sm btn-chunky border-blue-100 shadow-[0_4px_0_#dbeafe] dark:shadow-[0_4px_0_#1e3a8a]">+100</button>
+            <button onclick="adjustNutAmount(250, true)" class="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-sm btn-chunky border-blue-100 shadow-[0_4px_0_#dbeafe] dark:shadow-[0_4px_0_#1e3a8a]">+250</button>
+            <button onclick="adjustNutAmount(500, true)" class="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-sm btn-chunky border-blue-100 shadow-[0_4px_0_#dbeafe] dark:shadow-[0_4px_0_#1e3a8a]">+500</button>
+        </div>
+        <div id="proteinQuickAdd" class="flex justify-center gap-3 mb-8 hidden">
+            <button onclick="adjustNutAmount(10, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+10g</button>
+            <button onclick="adjustNutAmount(25, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+25g</button>
+            <button onclick="adjustNutAmount(50, true)" class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 font-bold text-sm btn-chunky border-red-100 shadow-[0_4px_0_#fee2e2] dark:shadow-[0_4px_0_#7f1d1d]">+50g</button>
+        </div>
+        <button onclick="saveNutModal()" id="nutSaveBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-4 rounded-[1.2rem] btn-chunky border-blue-700 shadow-[0_4px_0_#2563eb] flex items-center justify-center mb-2">Confirm</button>
+    </div>
+</div>
+
+<!-- EXERCISE SEARCH MODAL -->
+<div id="exSearchModalContainer" class="fixed inset-0 z-50 flex flex-col justify-end items-center pointer-events-none transition-all duration-300">
+    <div id="exSearchModalBackdrop" onclick="closeExSearchModal()" class="absolute inset-0 bg-gray-900/50 opacity-0 transition-opacity duration-300"></div>
+    <div id="exSearchModal" class="relative w-full max-w-[480px] bg-white dark:bg-gray-800 rounded-t-[2rem] p-6 pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pointer-events-auto translate-y-full transition-transform duration-300 cubic-bezier(0.175, 0.885, 0.32, 1)">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-5"></div>
+        <div class="mb-6">
+            <h2 class="text-2xl font-extrabold text-gray-800 dark:text-white mb-4">Add Exercise</h2>
+            <div class="relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="exSearchInput" oninput="filterExercises()" placeholder="Search exercises..." class="w-full bg-gray-100 dark:bg-gray-700 p-4 pl-12 rounded-2xl font-bold outline-none focus:ring-2 ring-primary transition-all">
+            </div>
+        </div>
+        <div id="exSearchResults" class="space-y-2 overflow-y-auto max-h-[50vh] pb-4"></div>
+        <button onclick="nav('pageC'); closeExSearchModal();" class="mt-4 w-full border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 rounded-2xl font-bold text-gray-500 hover:text-primary hover:border-primary transition-all">
+            + Add New Exercise Entry
+        </button>
+    </div>
+</div>
+
+<!-- STREAK INFO MODAL -->
+<div id="streakModalContainer" class="fixed inset-0 z-50 flex flex-col justify-end items-center pointer-events-none transition-all duration-300">
+    <div id="streakModalBackdrop" onclick="closeStreakModal()" class="absolute inset-0 bg-gray-900/50 opacity-0 transition-opacity duration-300"></div>
+    
+    <div id="streakModal" class="relative w-full max-w-[480px] h-[90vh] flex flex-col bg-white dark:bg-gray-800 rounded-t-[2rem] p-6 pt-3 shadow-xl pointer-events-auto translate-y-full transition-transform duration-300">
+        
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-5 shrink-0"></div>
+        
+        <div class="text-center mb-6 shrink-0">
+            <h2 class="text-3xl font-extrabold text-orange-500 flex items-center justify-center gap-3 tracking-tight">
+                <i class="fas fa-fire text-3xl drop-shadow-[0_0_15px_rgba(249,115,22,0.8)]"></i> Streaks
+            </h2>            
+        </div>
+        
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1">
+                <p class="flex-1 overflow-y-auto space-y-3 pr-1 text-lg font-bold leading-relaxed pl-4">
+                    Hit all goals to increase your streak:
+                </p>
+
+                <div class="reveal bg-cardLight dark:bg-cardDark p-4 rounded-2xl flex items-start gap-4 border border-gray-100 dark:border-gray-700" style="animation-delay: 100ms">
+                    <div class="relative w-10 h-10 shrink-0">
+                        <div class="absolute top-0 left-0 w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/50 text-red-500 flex items-center justify-center text-xs border-2 border-white dark:border-gray-800">
+                            <i class="fas fa-pizza-slice"></i>
+                        </div>
+                        <div class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-500 flex items-center justify-center text-xs">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                    </div>                
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-100">Daily Nutrition</h3>
+                        <p class="text-sm mt-1">Hit your daily <b>Water and Protein</b> goal.</p>
+                    </div>
+                </div>
+
+                <div class="reveal bg-cardLight dark:bg-cardDark p-4 rounded-2xl flex items-start gap-4 border border-gray-100 dark:border-gray-700" style="animation-delay: 200ms">
+                    <div class="w-10 h-10 rounded-full bg-primary/20 text-primaryDark flex items-center justify-center shrink-0 text-xl">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-100">Log a Workout</h3>
+                        <p class="text-sm mt-1">Complete at least one set of any exercise.</p>
+                    </div>
+                </div>
+                
+                <div class="reveal bg-cardLight dark:bg-cardDark p-4 rounded-2xl flex items-start gap-4 border border-gray-100 dark:border-gray-700" style="animation-delay: 300ms">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-100">Enjoy the Glory!</h3>
+                        <p class="text-sm mt-1">Streaks must be completed by midnight. Don't let the fire go out!</p>
+                    </div>
+                </div>
+
+                <div class="reveal bg-cardLight dark:bg-cardDark p-4 rounded-2xl flex items-start gap-4 border border-gray-100 dark:border-gray-700" style="animation-delay: 400ms">
+                    <div class="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-500 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fas fa-cube"></i>
+                    </div>                    
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-100">Earn Streak Savers</h3>
+                        <p class="text-sm mt-1">We get it, life gets in the way. Earn one every 7 days. Streak savers preserve your streak for one day.</p>
+                    </div>
+                </div>
+            
+            </div>
+                    
+        <button onclick="closeStreakModal()" class="w-full shrink-0 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold text-xl py-4 rounded-[1.2rem] btn-chunky mt-4 transition-colors">
+            Got it, Let's Go!
+        </button>
+    </div>
+</div>
+
+
+<script>
+    // --- APP STATE ---
+    const getDateStr = (daysAgo) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        const yyyy = d.getFullYear();
+
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const defaultDB = {
+        settings: { theme: 'auto', waterGoal: 2000, proteinGoal: 100 },
+        exercises: [
+            { id: '1', name: 'Treadmill (Walking)', freqUnit: 'Mins', intUnit: 'Incline', note: 'Set Incline to degree slope' }
+        ],
+        nutrition: {
+            [getDateStr(0)]: { timestamp: Date.now(), water: 0, protein: 0 },    
+            [getDateStr(1)]: { timestamp: Date.now()-86400000, water: 0, protein: 0 },
+        },
+        logs: []
+    };
+
+    let db = JSON.parse(localStorage.getItem('workoutDB')) || defaultDB;
+    let initialNutValue = 0; 
+    let activeModalType = null;
+    let activeExId = null;
+    let lastIntensityVal = 0;
+
+    function getGhostRatio() {
+        const now = new Date();
+        const currentHour = now.getHours() + now.getMinutes() / 60;
+        const start = 8; const end = 21;
+        if (currentHour < start) return 0;
+        if (currentHour > end) return 1;
+        return (currentHour - start) / (end - start);
+    }
+
+    function init() {
+        setTheme(db.settings.theme || 'auto');
+        document.getElementById('setWaterGoal').value = db.settings.waterGoal;
+        document.getElementById('setProteinGoal').value = db.settings.proteinGoal;
+        renderFeed();
+        setInterval(renderFeed, 60000);
+    }
+
+    function saveDB(justnow=false) {
+        localStorage.setItem('workoutDB', JSON.stringify(db));
+        renderFeed(justnow);
+    }
+
+    function nav(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function updateGoals() {
+        db.settings.waterGoal = parseInt(document.getElementById('setWaterGoal').value) || 2000;
+        db.settings.proteinGoal = parseInt(document.getElementById('setProteinGoal').value) || 150;
+        saveDB();
+    }
+
+    // --- UI MODAL ---
+    function openUIModal(contentHtml) {
+        document.getElementById('uiModalContent').innerHTML = contentHtml;
+        const container = document.getElementById('uiModalContainer');
+        const backdrop = document.getElementById('uiModalBackdrop');
+        const modal = document.getElementById('uiModal');
+        container.classList.remove('pointer-events-none');
+        setTimeout(() => { backdrop.classList.remove('opacity-0'); modal.classList.remove('translate-y-full'); }, 10);
+    }
+
+    function closeUIModal() {
+        const container = document.getElementById('uiModalContainer');
+        const backdrop = document.getElementById('uiModalBackdrop');
+        const modal = document.getElementById('uiModal');
+        backdrop.classList.add('opacity-0');
+        modal.classList.add('translate-y-full');
+        setTimeout(() => { container.classList.add('pointer-events-none'); }, 300);
+    }
+
+    function showNote(title, note) {
+        openUIModal(`
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Note for ${title}</h3>
+            <p class="text-xl font-bold text-gray-800 dark:text-gray-100 leading-relaxed mb-6">${note}</p>
+            <button onclick="closeUIModal()" class="w-full py-4 bg-gray-100 dark:bg-gray-700 rounded-2xl font-bold text-gray-500">Close</button>
+        `);
+    }
+
+    // --- WORKOUT LOGGING & GRAPH ---
+    function openExSearchModal() {
+        const container = document.getElementById('exSearchModalContainer');
+        const backdrop = document.getElementById('exSearchModalBackdrop');
+        const modal = document.getElementById('exSearchModal');
+        container.classList.remove('pointer-events-none');
+        document.getElementById('exSearchInput').value = '';
+        filterExercises();
+        setTimeout(() => { backdrop.classList.remove('opacity-0'); modal.classList.remove('translate-y-full'); }, 10);
+    }
+
+    function closeExSearchModal() {
+        const container = document.getElementById('exSearchModalContainer');
+        const backdrop = document.getElementById('exSearchModalBackdrop');
+        const modal = document.getElementById('exSearchModal');
+        backdrop.classList.add('opacity-0');
+        modal.classList.add('translate-y-full');
+        setTimeout(() => { container.classList.add('pointer-events-none'); }, 300);
+    }
+
+    function openStreakModal() {
+        const container = document.getElementById('streakModalContainer');
+        const backdrop = document.getElementById('streakModalBackdrop');
+        const modal = document.getElementById('streakModal');
+        
+        container.classList.remove('pointer-events-none');
+        
+        setTimeout(() => { 
+            backdrop.classList.remove('opacity-0'); 
+            modal.classList.remove('translate-y-full'); 
+        }, 10);
+
+        container.classList.add('active');
+
+    }
+
+    function closeStreakModal() {
+        const container = document.getElementById('streakModalContainer');
+        const backdrop = document.getElementById('streakModalBackdrop');
+        const modal = document.getElementById('streakModal');
+        
+        backdrop.classList.add('opacity-0');
+        modal.classList.add('translate-y-full');
+        
+        setTimeout(() => { 
+            container.classList.add('pointer-events-none'); 
+        }, 300);
+
+        container.classList.remove('active');
+
+    }
+
+    function filterExercises() {
+        const query = document.getElementById('exSearchInput').value.toLowerCase();
+        const todayLogs = db.logs.filter(l => l.date === getDateStr(0));
+        const lastExIdToday = todayLogs.length > 0 ? todayLogs[todayLogs.length - 1].exId : null;
+        const freqMap = {};
+        db.logs.forEach(l => freqMap[l.exId] = (freqMap[l.exId] || 0) + 1);
+        const sorted = [...db.exercises].sort((a, b) => {
+            if (a.id === lastExIdToday) return -1;
+            if (b.id === lastExIdToday) return 1;
+            return (freqMap[b.id] || 0) - (freqMap[a.id] || 0);
+        });
+        const results = sorted.filter(ex => ex.name.toLowerCase().includes(query));
+        const resultsDiv = document.getElementById('exSearchResults');
+        resultsDiv.innerHTML = results.map(ex => `
+            <div onclick="prepLogWorkout('${ex.id}')" class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group ${ex.id === lastExIdToday ? 'border-l-4 border-primary' : ''}">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="font-extrabold text-gray-800 dark:text-gray-100">${ex.name}</div>
+                        ${ex.id === lastExIdToday ? '<span class="text-[10px] bg-primary/20 text-primaryDark px-1.5 py-0.5 rounded-md font-black uppercase">Next Up?</span>' : ''}
+                    </div>
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-tight">${ex.intUnit} • ${ex.freqUnit}</div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-300 group-hover:text-primary transition-colors"></i>
+            </div>
+        `).join('');
+    }
+
+    function prepLogWorkout(exId) {
+        activeExId = exId;
+        const ex = db.exercises.find(e => e.id === exId);
+        document.getElementById('logExTitle').innerText = ex.name;
+        document.getElementById('logExFreqUnit').innerText = ex.freqUnit;
+        document.getElementById('logExIntUnit').innerText = ex.intUnit;
+        
+        const globalNoteEl = document.getElementById('logExGlobalNote');
+        const globalNoteTextEl = document.getElementById('logExGlobalNoteText');
+        if (ex.note && ex.note.trim() !== "") {
+            globalNoteTextEl.innerText = ex.note;
+            globalNoteEl.classList.remove('hidden');
+        } else {
+            globalNoteEl.classList.add('hidden');
+        }
+
+        const history = db.logs.filter(l => l.exId === exId).sort((a,b) => a.timestamp - b.timestamp);
+        const lastLog = history[history.length - 1];
+        if(lastLog) {
+            document.getElementById('logFreq').value = lastLog.freq;
+            document.getElementById('logInt').value = lastLog.int;
+            lastIntensityVal = lastLog.int;
+            document.getElementById('target5').innerText = (lastLog.int * 1.05).toFixed(1);
+            document.getElementById('target10').innerText = (lastLog.int * 1.10).toFixed(1);
+        } else {
+            lastIntensityVal = 0;
+            document.getElementById('target5').innerText = "--";
+            document.getElementById('target10').innerText = "--";
+        }
+        renderProgressGraph(history);
+        updateIntensityStatus();
+        closeExSearchModal(); nav('pageD');
+    }
+
+    function renderProgressGraph(history) {
+        const wrapper = document.getElementById('graphSvgWrapper');
+        if (history.length < 2) {
+            wrapper.innerHTML = `<div class="h-full flex items-center justify-center text-gray-400 text-xs font-bold italic">Need more data for graph...</div>`;
+            return;
+        }
+        const data = history.slice(-8).map(l => l.int);
+        const max = Math.max(...data) * 1.1;
+        const min = Math.min(...data) * 0.9;
+        const range = max - min;
+        const width = 360; const height = 100;
+        const step = width / (data.length - 1);
+        const points = data.map((val, i) => `${i * step},${height - ((val - min) / range * height)}`).join(' ');
+        
+        const yAxisLabels = `
+            <text x="-5" y="10" text-anchor="end" class="fill-gray-400 text-[10px] font-bold">${max.toFixed(0)}</text>
+            <text x="-5" y="${height/2 + 5}" text-anchor="end" class="fill-gray-400 text-[10px] font-bold">${((max+min)/2).toFixed(0)}</text>
+            <text x="-5" y="${height}" text-anchor="end" class="fill-gray-400 text-[10px] font-bold">${min.toFixed(0)}</text>
+        `;
+
+        wrapper.innerHTML = `
+            <svg viewBox="-40 0 ${width + 50} ${height + 10}" class="w-full h-full overflow-visible">
+                <defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#58cc02" stop-opacity="0.3" /><stop offset="100%" stop-color="#58cc02" stop-opacity="0" /></linearGradient></defs>
+                ${yAxisLabels}
+                <path d="M 0,${height} L ${points} L ${width},${height} Z" fill="url(#grad)" />
+                <polyline points="${points}" fill="none" stroke="#58cc02" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                ${data.map((val, i) => `<circle cx="${i * step}" cy="${height - ((val - min) / range * height)}" r="4" fill="white" stroke="#58cc02" stroke-width="2" />`).join('')}
+            </svg>
+        `;
+    }
+
+    function updateIntensityStatus() {
+        const currentVal = parseFloat(document.getElementById('logInt').value) || 0;
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        if (lastIntensityVal <= 0) {
+            dot.className = "w-3 h-3 rounded-full bg-gray-300";
+            text.innerText = "First time doing this!";
+            return;
+        }
+        const diffPercent = ((currentVal - lastIntensityVal) / lastIntensityVal) * 100;
+        if (diffPercent > 10) {
+            dot.className = "w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]";
+            text.className = "text-red-500 font-bold";
+            text.innerText = `Heavy Overload (+${diffPercent.toFixed(1)}%)`;
+        } else if (diffPercent < 0) {
+            dot.className = "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308]";
+            text.className = "text-yellow-600 dark:text-yellow-500 font-bold";
+            text.innerText = `Deloading (${diffPercent.toFixed(1)}%)`;
+        } else {
+            dot.className = "w-3 h-3 rounded-full bg-primary shadow-[0_0_8px_#58cc02]";
+            text.className = "text-primaryDark dark:text-primary font-bold";
+            text.innerText = `Growth Zone (+${diffPercent.toFixed(1)}%)`;
+        }
+    }
+
+    function saveNewExercise() {
+        const name = document.getElementById('newExName').value.trim();
+        if(!name) return alert('Enter a name');
+        const ex = { id: 'ex_' + Date.now(), name: name, freqUnit: document.getElementById('newExFreqUnit').value || 'Reps', intUnit: document.getElementById('newExIntUnit').value || 'kg', note: document.getElementById('newExNote').value };
+        db.exercises.push(ex); saveDB(); prepLogWorkout(ex.id);
+    }
+
+    function saveWorkoutLog() {
+        const log = { id: 'log_' + Date.now(), date: getDateStr(0), timestamp: Date.now(), exId: activeExId, int: parseFloat(document.getElementById('logInt').value) || 0, freq: parseFloat(document.getElementById('logFreq').value) || 0, note: document.getElementById('logNote').value };
+        db.logs.push(log); confetti({ particleCount: 100, spread: 70, origin: { y: 0.9 }, colors: ['#58cc02', '#ffffff'] });
+        saveDB(true); nav('pageA');
+        document.getElementById('logNote').value = '';
+    }
+
+    // --- NUTRITION & THEME ---
+    function openNutModal(type) {
+        activeModalType = type;
+        const today = getDateStr(0);
+        if(!db.nutrition[today]) db.nutrition[today] = { timestamp: Date.now(), water: 0, protein: 0 };
+        initialNutValue = type === 'water' ? db.nutrition[today].water : db.nutrition[today].protein;
+        document.getElementById('nutModalInput').value = initialNutValue;
+        updateNutDelta();
+        const icon = document.getElementById('nutModalIcon'); const text = document.getElementById('nutModalText'); const unit = document.getElementById('nutModalUnit'); const saveBtn = document.getElementById('nutSaveBtn'); const plusBtn = document.getElementById('nutBtnPlus'); const waterQuickAdd = document.getElementById('waterQuickAdd'); const proteinQuickAdd = document.getElementById('proteinQuickAdd');
+        if(type === 'water') {
+            icon.className = "fas fa-tint text-blue-500 self-center"; text.innerText = "Log Water"; unit.innerText = "ml";
+            saveBtn.className = "w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-4 rounded-[1.2rem] btn-chunky border-blue-700 shadow-[0_4px_0_#2563eb] flex items-center justify-center mb-2";
+            plusBtn.className = "w-14 h-14 rounded-[1.2rem] bg-blue-100 dark:bg-blue-900/50 text-blue-500 font-bold text-2xl btn-chunky border-blue-200 dark:border-blue-700 shadow-[0_4px_0_#bfdbfe] dark:shadow-[0_4px_0_#1e3a8a] flex items-center justify-center";
+            waterQuickAdd.classList.remove('hidden'); proteinQuickAdd.classList.add('hidden');
+        } else {
+            icon.className = "fas fa-pizza-slice text-red-500 self-center"; text.innerText = "Log Protein"; unit.innerText = "Grams";
+            saveBtn.className = "w-full bg-red-500 hover:bg-red-600 text-white font-bold text-xl py-4 rounded-[1.2rem] btn-chunky border-red-700 shadow-[0_4px_0_#dc2626] flex items-center justify-center mb-2";
+            plusBtn.className = "w-14 h-14 rounded-[1.2rem] bg-red-100 dark:bg-red-900/50 text-red-500 font-bold text-2xl btn-chunky border-red-200 dark:border-red-700 shadow-[0_4px_0_#fecaca] dark:shadow-[0_4px_0_#7f1d1d] flex items-center justify-center";
+            waterQuickAdd.classList.add('hidden'); proteinQuickAdd.classList.remove('hidden');
+        }
+        const container = document.getElementById('nutModalContainer'); const backdrop = document.getElementById('nutModalBackdrop'); const modal = document.getElementById('nutModal'); container.classList.remove('pointer-events-none');
+        setTimeout(() => { backdrop.classList.remove('opacity-0'); modal.classList.remove('translate-y-full'); }, 10);
+    }
+
+    function closeNutModal() {
+        const container = document.getElementById('nutModalContainer'); const backdrop = document.getElementById('nutModalBackdrop'); const modal = document.getElementById('nutModal'); backdrop.classList.add('opacity-0'); modal.classList.add('translate-y-full');
+        setTimeout(() => { container.classList.add('pointer-events-none'); }, 300);
+    }
+
+    function updateNutDelta() {
+        const currentVal = parseInt(document.getElementById('nutModalInput').value) || 0; const delta = currentVal - initialNutValue; const deltaEl = document.getElementById('nutModalDelta');
+        if (delta > 0) { deltaEl.innerText = `+${delta}`; deltaEl.className = "text-[1.1rem] font-bold ml-1 text-green-500 opacity-100"; } 
+        else if (delta < 0) { deltaEl.innerText = `${delta}`; deltaEl.className = "text-[1.1rem] font-bold ml-1 text-red-500 opacity-100"; } 
+        else { deltaEl.innerText = ""; deltaEl.className = "text-[1.1rem] font-bold ml-1 opacity-0"; }
+    }
+
+    function adjustNutAmount(delta, isQuickAdd = false) {
+        const input = document.getElementById('nutModalInput'); let val = parseInt(input.value) || 0;
+        if(!isQuickAdd) { if(activeModalType === 'water') delta = delta * 50; if(activeModalType === 'protein') delta = delta * 5; }
+        val = Math.max(0, val + delta); input.value = val; updateNutDelta();
+    }
+
+    function validateNutInput() {
+        const input = document.getElementById('nutModalInput'); if(parseInt(input.value) < 0 || isNaN(parseInt(input.value))) input.value = 0; updateNutDelta();
+    }
+
+    function saveNutModal() {
+        const today = getDateStr(0); const val = parseInt(document.getElementById('nutModalInput').value) || 0;
+        if(activeModalType === 'water') db.nutrition[today].water = val; else db.nutrition[today].protein = val;
+        db.nutrition[today].timestamp = Date.now(); saveDB(true); closeNutModal();
+        const goal = activeModalType === 'water' ? db.settings.waterGoal : db.settings.proteinGoal;
+
+        //celebrate!
+        const isDark = document.documentElement.classList.contains('dark');
+        let palette = val >= goal ? ['#58cc02', isDark ? '#14532d' : '#dcfce7'] : 
+                    (activeModalType === 'water' ? ['#3b82f6', isDark ? '#1e3a8a' : '#dbeafe'] : 
+                    ['#ef4444', isDark ? '#7f1d1d' : '#fee2e2']);
+
+        confetti({ particleCount: 60, spread: 60, origin: { y: 0.9 }, colors: palette });
+    }
+
+    function setTheme(mode) {
+        db.settings.theme = mode; localStorage.setItem('workoutDB', JSON.stringify(db));
+        ['light', 'dark', 'auto'].forEach(t => { const btn = document.getElementById(`btn-theme-${t}`); btn.classList.remove('bg-white', 'dark:bg-gray-600', 'shadow-sm'); if(t === mode) btn.classList.add('bg-white', 'dark:bg-gray-600', 'shadow-sm'); });
+        if (mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
+    }
+
+    function generateRingSVG(current, goal, colorHex, ghostRatio = 0) {
+        const radius = 40; const circumference = 2 * Math.PI * radius;
+        let actualPercent = Math.min((current / goal) * 100, 100);
+        let ghostPercent = Math.min(ghostRatio * 100, 100);
+        const actualOffset = circumference - (actualPercent / 100) * circumference;
+        const ghostOffset = circumference - (ghostPercent / 100) * circumference;
+        const isComplete = current >= goal;
+        return `
+        <svg viewBox="0 0 100 100" class="w-8 h-8 drop-shadow-sm transform -rotate-90">
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="currentColor" stroke-width="12" class="text-gray-200 dark:text-gray-700" />
+            ${ghostRatio > 0 ? `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="${colorHex}" stroke-width="12" stroke-dasharray="${circumference}" stroke-dashoffset="${ghostOffset}" stroke-linecap="round" opacity="0.25" class="ring-path" />` : ''}
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="${colorHex}" stroke-width="12" stroke-dasharray="${circumference}" stroke-dashoffset="${actualOffset}" stroke-linecap="round" class="ring-path" />
+            ${isComplete ? `<g transform="rotate(90 50 50)"><path d="M30 50 L45 65 L70 35" fill="none" stroke="${colorHex}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" /></g>` : ''}
+        </svg>`;
+    }
+
+    function renderFeed(justnow=false) {
+        const feedContainer = document.getElementById('historyFeed');
+        
+        const streakData = refreshStreakUI(justnow); 
+        
+        let html = ''; 
+        const todayStr = getDateStr(0); 
+        
+        const ghostRatio = getGhostRatio();
+        let dateSet = new Set(Object.keys(db.nutrition));
+        
+        db.logs.forEach(l => dateSet.add(l.date));
+        
+        const dates = Array.from(dateSet).sort((a, b) => {
+            const timeA = db.nutrition[a]?.timestamp || (db.logs.find(l => l.date === a)?.timestamp) || 0;
+            const timeB = db.nutrition[b]?.timestamp || (db.logs.find(l => l.date === b)?.timestamp) || 0;
+            return timeB - timeA;
+        });
+
+
+        dates.forEach((dateStr, index) => {
+            let headerText = dateStr === todayStr ? 'Today' : (dateStr === getDateStr(1) ? 'Yesterday' : '');
+            if (!headerText) { const parts = dateStr.split('-'); const d = new Date(parts[0], parts[1] - 1, parts[2]); headerText = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+            const nut = db.nutrition[dateStr] || { water: 0, protein: 0 };
+            const currentGhost = (dateStr === todayStr) ? ghostRatio : 0;
+            const ringsHtml = generateRingSVG(nut.protein, db.settings.proteinGoal, '#ef4444', currentGhost) + generateRingSVG(nut.water, db.settings.waterGoal, '#3b82f6', currentGhost);
+            
+            const dayLogs = db.logs.filter(l => l.date === dateStr);
+            let logsHtml = (dayLogs.length === 0) ? `<p class="text-gray-400 dark:text-gray-500 text-sm italic pl-1">Rest day.</p>` : "";
+            
+            if (dayLogs.length > 0) {
+                const grouped = {};
+                dayLogs.forEach(log => { if(!grouped[log.exId]) grouped[log.exId] = []; grouped[log.exId].push(log); });
+                Object.values(grouped).forEach(sets => {
+                    const ex = db.exercises.find(e => e.id === sets[0].exId) || { name: 'Unknown', freqUnit: 'Reps', intUnit: 'kg' };
+                    const combinedNote = sets.map(s => s.note).filter(n => n).join(" | ") || ex.note;
+                    const noteIcon = combinedNote ? `<i class="fas fa-info-circle text-gray-400 hover:text-primary transition-colors ml-1 cursor-pointer" onclick="showNote('${ex.name}', '${combinedNote.replace(/'/g, "\\'")}')"></i>` : '';
+                    const setStrings = sets.map(s => `${s.freq}x${s.int}`).join("  ");
+                    logsHtml += `<div class="text-[15px] text-gray-600 dark:text-gray-400 mb-2 pl-1 leading-snug"><span class="font-bold text-gray-900 dark:text-gray-100">${ex.name} (${ex.freqUnit}/${ex.intUnit})</span> ${noteIcon} <span class="ml-2 font-mono text-sm">${setStrings}</span></div>`;
+                });
+            }
+
+            //Streaks
+            const status = streakData.history[dateStr];
+            let statusIcon = '';
+            if (status === 'success') {
+                statusIcon = `<i class="fas fa-fire text-orange-500 ml-2 text-sm"></i>`;
+            } else if (status === 'frozen') {
+                statusIcon = `<i class="fas fa-cube text-cyan-500 ml-2 text-sm"></i>`;
+            }
+
+        
+            html += `
+                <div class="${index > 1 ? 'opacity-70 hover:opacity-100' : 'opacity-100'} transition-opacity duration-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <h2 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">${headerText}${statusIcon}</h2>
+                        <div class="flex gap-2.5 ml-1">${ringsHtml}</div>
+                    </div>
+                    <div>${logsHtml}</div>
+                </div>`;
+        
+        
+        });
+        feedContainer.innerHTML = html;
+    }
+
+    // --- DATA MGMT ---
+    const escCSV = (str) => { let s = String(str||''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g, '""')}"` : s; };
+    function exportCSV(type) {
+        let csv = "";
+        if (type === 'nutrition') { csv = "Date,UTC_Time,Water,Protein\n"; Object.keys(db.nutrition).sort().forEach(d => { const n = db.nutrition[d]; csv += `${d},${n.timestamp||Date.now()},${n.water},${n.protein}\n`; }); } 
+        else if (type === 'workouts') { csv = "Date,UTC_Time,WorkoutName,Intensity,Reps,Note\n"; db.logs.forEach(l => { const ex = db.exercises.find(e => e.id === l.exId) || {name: 'Unknown'}; csv += `${l.date},${l.timestamp},${escCSV(ex.name)},${l.int},${l.freq},${escCSV(l.note)}\n`; }); } 
+        else if (type === 'exercises') { csv = "Name,IntensityUnit,RepUnit,Note\n"; db.exercises.forEach(ex => { csv += `${escCSV(ex.name)},${escCSV(ex.intUnit)},${escCSV(ex.freqUnit)},${escCSV(ex.note)}\n`; }); }
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `tracker_${type}.csv`; a.click();
+    }
+    function parseCSVData(str) {
+        const arr = []; let quote = false;
+        for (let row = 0, col = 0, c = 0; c < str.length; c++) {
+            let cc = str[c], nc = str[c+1]; arr[row] = arr[row] || []; arr[row][col] = arr[row][col] || '';
+            if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
+            if (cc == '"') { quote = !quote; continue; }
+            if (cc == ',' && !quote) { ++col; continue; }
+            if ((cc == '\n' || cc == '\r') && !quote) { if(cc=='\r'&&nc=='\n')++c; ++row; col = 0; continue; }
+            arr[row][col] += cc;
+        }
+        return arr;
+    }
+    function importCSV(event, type) {
+        const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+        reader.onload = function(e) {
+            const rows = parseCSVData(e.target.result); if (rows.length <= 1) return;
+            if (type === 'nutrition') db.nutrition = {}; else if (type === 'workouts') db.logs = []; else if (type === 'exercises') db.exercises = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i]; if(r.length < 2 || !r[0]) continue;
+                if (type === 'nutrition') db.nutrition[r[0]] = { timestamp: parseInt(r[1]) || Date.now(), water: parseInt(r[2]) || 0, protein: parseInt(r[3]) || 0 };
+                else if (type === 'workouts') {
+                    const ts = parseInt(r[1]) || Date.now(); let ex = db.exercises.find(e => e.name.toLowerCase() === r[2].toLowerCase());
+                    if (!ex) { ex = { id: 'ex_'+Date.now()+i, name: r[2], freqUnit: 'Reps', intUnit: 'kg', note: '' }; db.exercises.push(ex); }
+                    db.logs.push({ id: 'log_'+Date.now()+i, date: r[0], timestamp: ts, exId: ex.id, int: parseFloat(r[3])||0, freq: parseFloat(r[4])||0, note: r[5]||'' });
+                } else if (type === 'exercises') {
+                    let ex = db.exercises.find(e => e.name.toLowerCase() === r[0].toLowerCase());
+                    if (ex) { ex.intUnit=r[1]; ex.freqUnit=r[2]; ex.note=r[3]; } else { db.exercises.push({ id: 'ex_'+Date.now()+i, name: r[0], intUnit: r[1], freqUnit: r[2], note: r[3] }); }
+                }
+            }
+            event.target.value = ''; saveDB(); nav('pageA');
+        };
+        reader.readAsText(file);
+    }
+
+    // ---- Streak Raw----
+    function updateStreakSavers(count) {
+        for (let i = 1; i <= 3; i++) {
+            const saver = document.getElementById(`saver-${i}`);
+            if (i <= count) {
+                saver.className = "fas fa-cube text-[10px] text-cyan-500";
+            } else {
+                saver.className = "fas fa-cube text-[10px] text-gray-300 dark:text-gray-700";
+            }
+        }
+
+        const clockRow = document.getElementById('saver-clock-row');
+        clockRow.classList.toggle('hidden', count >= 3);
+
+    }
+
+    function updateSaverCountdown(days) {
+        document.getElementById('saver-countdown').innerText = `+1 in ${days}d`;
+    }
+
+    function updateStreak(days){
+        document.getElementById('streak-num').innerText = days; 
+    }
+
+    function updateStreakAnim(days) {
+        //pipes justnow: (select) saveDB -> renderFeed -> refreshStreakUI -> updateStreakAnim
+
+        const anim_length = 3000; //in milliseconds
+        
+        updateStreak(days);
+
+        const today = getDateStr(0);
+        const lastRunDate = localStorage.getItem('last_run_streak_up');
+        if (lastRunDate === today) {
+            return;
+        }
+        localStorage.setItem('last_run_streak_up', today);
+
+
+        if (document.getElementById('streak-pop')) return; //animation called to fast
+
+        const overlay = document.createElement('div');
+        overlay.className = "fixed inset-0 z-[100] bg-gray-900/90 flex flex-col items-center justify-center transition-opacity duration-500";
+        overlay.innerHTML = `
+            <div class="relative transform transition-all duration-500 scale-0 opacity-0" id="streak-pop">
+                <i class="fas fa-fire text-[180px] text-orange-500 drop-shadow-[0_0_50px_#f97316]"></i>
+                <div class="absolute inset-0 flex items-center justify-center pt-10 text-white text-6xl font-black">${days}</div>
+            </div>
+            <h1 class="text-orange-500 text-3xl font-black mt-6 tracking-tighter">day streak</h1>
+        `;
+        
+        document.body.appendChild(overlay);
+
+        setTimeout(() => document.getElementById('streak-pop').classList.remove('scale-0', 'opacity-0'), 10);
+
+        // Fireworks
+        const fwContainer = document.createElement('div');
+        fwContainer.className = "absolute inset-0 z-0";
+        overlay.appendChild(fwContainer);
+
+        const fw = new Fireworks.default(fwContainer, { hue: { min: 0, max: 30 }, delay: { min: 15, max: 30 }, intensity: 30, friction: 0.95, gravity: 0.1, particles:100, rocketsPoint: {min: 40, max: 60},  mouse: {click: true, move: false, max: 10}});
+        fw.start()
+
+        // Cleanup
+        setTimeout(() => {
+            overlay.classList.add('opacity-0');
+            setTimeout(() => { overlay.remove();}, 500);
+        }, anim_length);      
+    }   
+
+    function addStreakGlow() {
+        document.getElementById('streak-indicator').classList.add('drop-shadow-[0_0_15px_#f97316]');
+    }
+
+    function removeStreakGlow() {
+        document.getElementById('streak-indicator').classList.remove('drop-shadow-[0_0_15px_#f97316]');
+    }
+
+
+    // Streak
+    function calculateStreakData() {
+        const allDates = Object.keys(db.nutrition).concat(db.logs.map(l => l.date));
+        if (allDates.length === 0) return { streak: 0, freezes: 0, countdown: 3, history: {} };
+
+        const sortedDates = allDates.sort();
+        const startDate = new Date(sortedDates[0].replace(/-/g, '/'));
+        
+        const today = new Date();
+        
+        let current_streak = 0;
+        let current_freezes = 0;
+        let days_till_next_freeze = 3;
+        let streakHistory = {};
+
+        let iter = new Date(startDate);
+        while (iter <= today) {
+            const dateStr = `${iter.getFullYear()}-${String(iter.getMonth() + 1).padStart(2, '0')}-${String(iter.getDate()).padStart(2, '0')}`;
+            
+            const isToday = dateStr === getDateStr(0);
+            
+            // Water + Protein + At least 1 Log
+            const nut = db.nutrition[dateStr] || { water: 0, protein: 0 };
+            const dayLogs = db.logs.filter(l => l.date === dateStr);
+            const isSuccessful = nut.water >= db.settings.waterGoal && 
+                                nut.protein >= db.settings.proteinGoal && 
+                                dayLogs.length > 0;
+
+            if (isSuccessful) {
+                current_streak += 1;
+                if (current_freezes < 3) {
+                    days_till_next_freeze -= 1;
+                }
+                streakHistory[dateStr] = 'success';
+            } else {
+                if (isToday) {
+                    streakHistory[dateStr] = 'pending';
+                } else {
+                    if (current_freezes === 0) {
+                        current_streak = 0;
+                        days_till_next_freeze = 3;
+                        streakHistory[dateStr] = 'lost';
+                    } else {
+                        current_freezes -= 1;
+                        streakHistory[dateStr] = 'frozen';
+                    }
+                }
+            }
+
+            if (days_till_next_freeze === 0) {
+                current_freezes += 1;
+                days_till_next_freeze = 7;
+            }
+
+            iter.setDate(iter.getDate() + 1);
+        }
+
+        return {
+            streak: current_streak,
+            freezes: current_freezes,
+            countdown: days_till_next_freeze,
+            history: streakHistory
+        };
+    }
+
+
+    function refreshStreakUI(justnow=false) {
+        const data = calculateStreakData();
+        
+        updateStreak(data.streak);
+        updateStreakSavers(data.freezes);
+        
+        if (data.freezes < 3) {
+            updateSaverCountdown(data.countdown);
+        }
+
+        const todayStatus = data.history[getDateStr(0)];
+        if (todayStatus === 'success') {
+            addStreakGlow();
+            if(justnow){
+                updateStreakAnim(data.streak);
+            } 
+        } else {
+            removeStreakGlow();
+        }
+        
+        return data;
+    }
+
+    init();
+    
+</script>
+</body>
+</html>
