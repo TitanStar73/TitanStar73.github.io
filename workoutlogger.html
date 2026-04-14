@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script>
-    const versionID = '1.1.4'
+    const versionID = '1.1.5'
 </script>
 
 <html lang="en">
@@ -816,6 +816,7 @@
     const NM_RAPID_TIME2 = 100;  // rapid increase tp
 
     function startNutHold(e,delta) {
+        stopNutHold();
         if (e.type === 'touchstart') e.preventDefault(); // Prevents "long-press" menus
         adjustNutAmount(delta); 
         nutDelay = setTimeout(() => {
