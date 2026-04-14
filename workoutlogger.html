@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script>
-    const versionID = '1.1.3'
+    const versionID = '1.1.4'
 </script>
 
 <html lang="en">
@@ -358,12 +358,12 @@
             </h2>
         </div>
         <div class="flex items-center justify-center gap-6 mb-6">
-            <button onmousedown="startNutHold(-1)" onmouseup="stopNutHold()" class="w-14 h-14 rounded-[1.2rem] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-2xl font-bold btn-chunky border-gray-200 dark:border-gray-700 shadow-[0_4px_0_#e5e7eb] dark:shadow-[0_4px_0_#020617] flex items-center justify-center"><i class="fas fa-minus"></i></button>
+            <button onmousedown="startNutHold(event,-1)" onmouseup="stopNutHold()" ontouchstart="startNutHold(event,-1)" ontouchend="stopNutHold()" class="w-14 h-14 rounded-[1.2rem] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-2xl font-bold btn-chunky border-gray-200 dark:border-gray-700 shadow-[0_4px_0_#e5e7eb] dark:shadow-[0_4px_0_#020617] flex items-center justify-center"><i class="fas fa-minus"></i></button>
             <div class="text-center w-32">
                 <input type="number" id="nutModalInput" class="text-5xl font-extrabold w-full text-center bg-transparent outline-none text-gray-800 dark:text-white" value="0" onchange="validateNutInput()" oninput="updateNutDelta()">
                 <div id="nutModalUnit" class="text-gray-400 font-bold uppercase tracking-widest text-[11px] mt-1">ml</div>
             </div>
-            <button onmousedown="startNutHold(1)" onmouseup="stopNutHold()" id="nutBtnPlus" class="w-14 h-14 rounded-[1.2rem] bg-blue-100 text-blue-500 text-2xl font-bold btn-chunky border-blue-200 shadow-[0_4px_0_#bfdbfe] flex items-center justify-center"><i class="fas fa-plus"></i></button>
+            <button onmousedown="startNutHold(event,1)" ontouchstart="startNutHold(event,1)" ontouchend="stopNutHold()" onmouseup="stopNutHold()" id="nutBtnPlus" class="w-14 h-14 rounded-[1.2rem] bg-blue-100 text-blue-500 text-2xl font-bold btn-chunky border-blue-200 shadow-[0_4px_0_#bfdbfe] flex items-center justify-center"><i class="fas fa-plus"></i></button>
         </div>
         <div id="waterQuickAdd" class="flex justify-center gap-3 mb-8 hidden">
             <button onclick="adjustNutAmount(100, true)" class="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-sm btn-chunky border-blue-100 shadow-[0_4px_0_#dbeafe] dark:shadow-[0_4px_0_#1e3a8a]">+100</button>
@@ -815,7 +815,8 @@
     const NM_DELAY_TIME2 = 2400; //delay time before ramp up
     const NM_RAPID_TIME2 = 100;  // rapid increase tp
 
-    function startNutHold(delta) {
+    function startNutHold(e,delta) {
+        if (e.type === 'touchstart') e.preventDefault(); // Prevents "long-press" menus
         adjustNutAmount(delta); 
         nutDelay = setTimeout(() => {
             nutTimer = setInterval(() => adjustNutAmount(delta), NM_RAPID_TIME);
