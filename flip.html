@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Bottle Flip Calculator</title>
+    <style>
+        :root {
+            --primary-blue: #0077be;
+            --light-blue: #e0f2fe;
+            --dark-blue: #0369a1;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #334155;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-blue);
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: #64748b;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+        }
+
+        .result-card {
+            background-color: var(--light-blue);
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            margin-top: 2rem;
+            text-align: center;
+            border: 2px dashed var(--primary-blue);
+        }
+
+        .result-value {
+            display: block;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--dark-blue);
+        }
+
+        .result-label {
+            font-size: 0.9rem;
+            color: var(--dark-blue);
+            font-weight: 600;
+        }
+
+        .visualization {
+            height: 100px;
+            width: 40px;
+            border: 3px solid #334155;
+            border-radius: 4px 4px 8px 8px;
+            margin: 1rem auto;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        #water-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #3b82f6;
+            transition: height 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Optimal Water Bottle Flip Calculator</h1>
+    
+    <div class="input-group">
+        <label>Mass of empty bottle - grams</label>
+        <input type="number" id="mass" value="120" step="0.1">
+    </div>
+
+    <div class="input-group">
+        <label>Diameter of bottle - cm</label>
+        <input type="number" id="diameter" value="5" step="0.1">
+    </div>
+
+    <div class="input-group">
+        <label>Height of bottle - cm</label>
+        <input type="number" id="height" value="15" step="0.1">
+    </div>
+
+    <div class="input-group">
+        <label>Density of liquid - g/cm³</label>
+        <input type="number" id="density" value="1" step="0.01">
+    </div>
+
+    <div class="result-card">
+        <span class="result-label">OPTIMAL WATER HEIGHT</span>
+        <span class="result-value" id="result">0.00</span>
+        <span class="result-label">centimetres</span>
+        
+        <div class="visualization">
+            <div id="water-fill"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const inputs = ['mass', 'diameter', 'height', 'density'];
+    
+    function calculate() {
+        const M = parseFloat(document.getElementById('mass').value) || 0;
+        const D = parseFloat(document.getElementById('diameter').value) || 0;
+        const H = parseFloat(document.getElementById('height').value) || 0;
+        const p = parseFloat(document.getElementById('density').value) || 0;
+
+            const R = D / 2;
+            const PiR2p = Math.PI * Math.pow(R, 2) * p;
+            
+            // Formula: h = (-M + sqrt(M^2 + (pi*R*R*p*M*H))) / (pi*R*R*p)
+            const numerator = -M + Math.sqrt(Math.pow(M, 2) + (PiR2p * M * H));
+            const denominator = PiR2p;
+            
+            const h = numerator / denominator;
+            
+            // Update Text
+            const finalHeight = h.toFixed(2);
+            const fillPercentage = Math.min((h / H) * 100, 100);
+
+            document.getElementById('result').innerText = '' + finalHeight + '(' + fillPercentage.toFixed(0) + '%)';
+
+            // Update Visual
+            document.getElementById('water-fill').style.height = fillPercentage + '%';
+    }
+
+    // Add event listeners to all inputs for real-time updates
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', calculate);
+    });
+
+    // Run once on load
+    calculate();
+</script>
+
+</body>
+</html>
